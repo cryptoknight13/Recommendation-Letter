@@ -10,7 +10,6 @@
   h1 { font-size: 1.4rem; }
   a.prof { display: block; padding: 14px 16px; margin: 10px 0; border: 1px solid #ccc; border-radius: 8px; text-decoration: none; color: inherit; font-size: 1.1rem; }
   a.prof:hover { background: #f4f4f4; }
-  a.prof span { float: right; color: #666; font-size: .9rem; }
   label { display: flex; align-items: center; gap: 10px; padding: 10px 4px; border-bottom: 1px solid #eee; cursor: pointer; }
   input[type=checkbox] { width: 20px; height: 20px; }
   button { margin-top: 16px; padding: 10px 24px; font-size: 1rem; cursor: pointer; }
@@ -68,11 +67,10 @@ async function get(path) {
   return (await r.json()) || {};
 }
 
-async function home() {
-  const all = await get("letters");
+function home() {
   app.innerHTML = `<h1>Recommendation Letters</h1><p>Select your name.</p>` +
     Object.entries(PROFESSORS).map(([id, name]) =>
-      `<a class="prof" href="#${id}">${esc(name)}<span>${schoolsFor(id).filter(k => all[id] && all[id][k]).length} / ${schoolsFor(id).length} sent</span></a>`).join("");
+      `<a class="prof" href="#${id}">${esc(name)}</a>`).join("");
 }
 
 async function prof(id) {
