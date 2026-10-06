@@ -1,0 +1,18 @@
+{
+  "rules": {
+    "letters": {
+      ".read": true,
+      "$prof": {
+        ".write": "$prof.matches(/^(indrajit-ray|indrakshi-ray|sudipto-ghosh|sarath-sreedharan)$/)",
+        "$school": { ".validate": "newData.isBoolean()" }
+      }
+    },
+    "savedAt": {
+      ".read": true,
+      "$prof": {
+        ".write": "$prof.matches(/^(indrajit-ray|indrakshi-ray|sudipto-ghosh|sarath-sreedharan)$/)",
+        ".validate": "newData.isNumber()"
+      }
+    }
+  }
+}

@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Recommendation Letters</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 0 auto; padding: 16px; color: #222; background: #fff; }
+  h1 { font-size: 1.4rem; }
+  a.prof { display: block; padding: 14px 16px; margin: 10px 0; border: 1px solid #ccc; border-radius: 8px; text-decoration: none; color: inherit; font-size: 1.1rem; }
+  a.prof:hover { background: #f4f4f4; }
+  a.prof span { float: right; color: #666; font-size: .9rem; }
+  label { display: flex; align-items: center; gap: 10px; padding: 10px 4px; border-bottom: 1px solid #eee; cursor: pointer; }
+  input[type=checkbox] { width: 20px; height: 20px; }
+  button { margin-top: 16px; padding: 10px 24px; font-size: 1rem; cursor: pointer; }
+  #status { margin-left: 12px; color: #666; }
+  .back { color: #06c; }
+</style>
+</head>
+<body>
+<div id="app">Loading…</div>
+<script>
+// Paste your Firebase Realtime Database URL here (no trailing slash).
+const DB = "https://YOUR-PROJECT-default-rtdb.firebaseio.com";
+
+const PROFESSORS = {
+  "indrajit-ray": "Prof. Indrajit Ray",
+  "indrakshi-ray": "Prof. Indrakshi Ray",
+  "sudipto-ghosh": "Prof. Sudipto Ghosh",
+  "sarath-sreedharan": "Dr. Sarath Sreedharan",
+};
+
+// Add a school: add one line. Key = short id (never change it once used), value = display name.
+const SCHOOLS = {
+  "alabama": "University of Alabama",
+  "alcorn": "Alcorn State University",
+  "athens": "Athens State University",
+  "calpoly-pomona": "Cal Poly Pomona",
+  "chicago-state": "Chicago State University",
+  "csulb": "California State University, Long Beach",
+  "fsu": "Florida State University",
+  "hofstra": "Hofstra University",
+  "indiana": "Indiana University Bloomington",
+  "ksu": "Kennesaw State University",
+  "montana-state": "Montana State University",
+  "mst": "Missouri S&T",
+  "mst-ce": "Missouri S&T (Computer Engineering)",
+  "nku-cit": "Northern Kentucky University (CIT Cyber)",
+  "nku-isa": "Northern Kentucky University (ISA)",
+  "nlr": "NLR",
+  "north-georgia": "University of North Georgia",
+  "sam-houston": "Sam Houston State University",
+  "sdsu": "San Diego State University",
+  "siue": "Southern Illinois University Edwardsville",
+  "sjsu": "San José State University",
+  "suny-brockport": "SUNY Brockport",
+  "tamu": "Texas A&M University",
+  "ucdenver": "University of Colorado Denver",
+  "uh": "University of Houston",
+  "um-flint": "University of Michigan-Flint",
+  "unm": "University of New Mexico",
+  "ut-austin": "University of Texas at Austin",
+  "utep": "University of Texas at El Paso",
+  "uw-bothell": "University of Washington Bothell",
+  "uw-oshkosh": "University of Wisconsin–Oshkosh",
+  "weber": "Weber State University",
+  "winthrop": "Winthrop University",
+  "yeshiva": "Yeshiva University",
+};
+
+const app = document.getElementById("app");
+const total = Object.keys(SCHOOLS).length;
+const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const count = data => Object.keys(SCHOOLS).filter(k => data && data[k]).length;
+
+async function get(path) {
+  const r = await fetch(`${DB}/${path}.json`);
+  if (!r.ok) throw new Error(r.status);
+  return (await r.json()) || {};
+}
+
+async function home() {
+  const all = await get("letters");
+  app.innerHTML = `<h1>Recommendation Letters</h1><p>Select your name.</p>` +
+    Object.entries(PROFESSORS).map(([id, name]) =>
+      `<a class="prof" href="#${id}">${esc(name)}<span>${count(all[id])} / ${total} sent</span></a>`).join("");
+}
+
+async function prof(id) {
+  const [data, saved] = await Promise.all([get(`letters/${id}`), get(`savedAt/${id}`)]);
+  app.innerHTML = `<p><a class="back" href="#">← All recommenders</a></p>
+    <h1>${esc(PROFESSORS[id])}</h1>
+    <p>Check each school where you have submitted the letter, then click Save.</p>
+    <form id="f">` +
+    Object.entries(SCHOOLS).sort((a, b) => a[1].localeCompare(b[1])).map(([k, name]) =>
+      `<label><input type="checkbox" name="${k}" ${data[k] ? "checked" : ""}> ${esc(name)}</label>`).join("") +
+    `<button>Save</button><span id="status">${typeof saved === "number" ? "Last saved " + new Date(saved).toLocaleString() : ""}</span></form>`;
+
+  document.getElementById("f").onsubmit = async e => {
+    e.preventDefault();
+    const status = document.getElementById("status");
+    const body = {};
+    for (const k in SCHOOLS) body[`letters/${id}/${k}`] = e.target.elements[k].checked;
+    body[`savedAt/${id}`] = Date.now();
+    status.textContent = "Saving…";
+    try {
+      const r = await fetch(`${DB}/.json`, { method: "PATCH", body: JSON.stringify(body) });
+      if (!r.ok) throw new Error(r.status);
+      status.textContent = "Saved ✓ " + new Date().toLocaleString();
+    } catch (err) {
+      status.textContent = "Save failed — please try again (" + err.message + ")";
+    }
+  };
+}
+
+async function route() {
+  const id = location.hash.slice(1);
+  app.textContent = "Loading…";
+  try {
+    PROFESSORS[id] ? await prof(id) : await home();
+  } catch (err) {
+    app.textContent = "Could not load data (" + err.message + "). Please refresh.";
+  }
+}
+window.onhashchange = route;
+route();
+</script>
+</body>
+</html>
