@@ -31,34 +31,38 @@ const PROFESSORS = {
   "sarath-sreedharan": "Dr. Sarath Sreedharan",
 };
 
-// Add a school: add one line. Key = short id (never change it once used), value = display name.
+// Add a school: add one line. Key = short id (never change it once used),
+// then display name and which recommenders are listed in that school's References.pdf.
+const ALL4 = ["indrajit-ray", "indrakshi-ray", "sudipto-ghosh", "sarath-sreedharan"];
+const GHOSH = ["indrajit-ray", "indrakshi-ray", "sudipto-ghosh"];
+const SREE = ["indrajit-ray", "indrakshi-ray", "sarath-sreedharan"];
 const SCHOOLS = {
-  "alabama": "The University of Alabama",
-  "alcorn": "Alcorn State University",
-  "athens": "Athens State University",
-  "calpoly-pomona": "California State Polytechnic University, Pomona",
-  "csulb": "California State University, Long Beach",
-  "hofstra": "Hofstra University",
-  "ksu": "Kennesaw State University",
-  "montana-state": "Montana State University",
-  "mst": "Missouri University of Science and Technology (Computer Science)",
-  "mst-ce": "Missouri University of Science and Technology (Electrical and Computer Engineering)",
-  "nku-cit": "Northern Kentucky University (CIT Cybersecurity)",
-  "nku-isa": "Northern Kentucky University (Information Systems)",
-  "sdsu": "San Diego State University",
-  "siue": "Southern Illinois University Edwardsville",
-  "sjsu": "San José State University",
-  "ucdenver": "University of Colorado Denver",
-  "um-flint": "University of Michigan-Flint",
-  "unm": "The University of New Mexico",
-  "utep": "The University of Texas at El Paso",
-  "yeshiva": "Yeshiva University",
+  "alabama": ["The University of Alabama", ALL4],
+  "alcorn": ["Alcorn State University", GHOSH],
+  "athens": ["Athens State University", GHOSH],
+  "calpoly-pomona": ["California State Polytechnic University, Pomona", ALL4],
+  "csulb": ["California State University, Long Beach", GHOSH],
+  "hofstra": ["Hofstra University", GHOSH],
+  "ksu": ["Kennesaw State University", GHOSH],
+  "montana-state": ["Montana State University", ALL4], // no References.pdf in folder
+  "mst": ["Missouri University of Science and Technology (Computer Science)", SREE],
+  "mst-ce": ["Missouri University of Science and Technology (Electrical and Computer Engineering)", GHOSH],
+  "nku-cit": ["Northern Kentucky University (CIT Cybersecurity)", SREE],
+  "nku-isa": ["Northern Kentucky University (Information Systems)", GHOSH],
+  "sdsu": ["San Diego State University", GHOSH],
+  "siue": ["Southern Illinois University Edwardsville", ALL4], // no References.pdf in folder
+  "sjsu": ["San José State University", GHOSH],
+  "ucdenver": ["University of Colorado Denver", SREE],
+  "um-flint": ["University of Michigan-Flint", SREE],
+  "unm": ["The University of New Mexico", ALL4],
+  "utep": ["The University of Texas at El Paso", GHOSH],
+  "yeshiva": ["Yeshiva University", SREE],
 };
 
 const app = document.getElementById("app");
-const total = Object.keys(SCHOOLS).length;
 const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const count = data => Object.keys(SCHOOLS).filter(k => data && data[k]).length;
+const schoolsFor = id => Object.keys(SCHOOLS).filter(k => SCHOOLS[k][1].includes(id))
+  .sort((a, b) => SCHOOLS[a][0].localeCompare(SCHOOLS[b][0]));
 
 async function get(path) {
   const r = await fetch(`${DB}/${path}.json`);
@@ -70,7 +74,7 @@ async function home() {
   const all = await get("letters");
   app.innerHTML = `<h1>Recommendation Letters</h1><p>Select your name.</p>` +
     Object.entries(PROFESSORS).map(([id, name]) =>
-      `<a class="prof" href="#${id}">${esc(name)}<span>${count(all[id])} / ${total} sent</span></a>`).join("");
+      `<a class="prof" href="#${id}">${esc(name)}<span>${schoolsFor(id).filter(k => all[id] && all[id][k]).length} / ${schoolsFor(id).length} sent</span></a>`).join("");
 }
 
 async function prof(id) {
@@ -79,15 +83,15 @@ async function prof(id) {
     <h1>${esc(PROFESSORS[id])}</h1>
     <p>Check each school where you have submitted the letter, then click Save.</p>
     <form id="f">` +
-    Object.entries(SCHOOLS).sort((a, b) => a[1].localeCompare(b[1])).map(([k, name]) =>
-      `<label><input type="checkbox" name="${k}" ${data[k] ? "checked" : ""}> ${esc(name)}</label>`).join("") +
+    schoolsFor(id).map(k =>
+      `<label><input type="checkbox" name="${k}" ${data[k] ? "checked" : ""}> ${esc(SCHOOLS[k][0])}</label>`).join("") +
     `<button>Save</button><span id="status">${typeof saved === "number" ? "Last saved " + new Date(saved).toLocaleString() : ""}</span></form>`;
 
   document.getElementById("f").onsubmit = async e => {
     e.preventDefault();
     const status = document.getElementById("status");
     const body = {};
-    for (const k in SCHOOLS) body[`letters/${id}/${k}`] = e.target.elements[k].checked;
+    for (const k of schoolsFor(id)) body[`letters/${id}/${k}`] = e.target.elements[k].checked;
     body[`savedAt/${id}`] = Date.now();
     status.textContent = "Saving…";
     try {
